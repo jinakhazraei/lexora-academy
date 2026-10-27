@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { aiFeatures } from "@/lib/data";
 
 export function AiFeaturesSection() {
@@ -19,15 +20,41 @@ export function AiFeaturesSection() {
           </p>
         </div>
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {aiFeatures.map((f) => (
-            <div
-              key={f.title}
-              className="rounded-2xl border border-white/15 bg-white/[0.07] p-6 backdrop-blur-md"
-            >
-              <div className="mb-2 font-sans text-[15px] font-bold text-gold-light">{f.title}</div>
-              <div className="font-sans text-[13px] leading-relaxed text-white/65">{f.desc}</div>
-            </div>
-          ))}
+          {aiFeatures.map((f) => {
+            const body = (
+              <>
+                <div className="mb-2 flex items-start justify-between gap-3">
+                  <div className="font-sans text-[15px] font-bold text-gold-light">{f.title}</div>
+                  <span
+                    className={`shrink-0 rounded-full px-2 py-0.5 font-sans text-[10.5px] font-bold uppercase tracking-wide ${
+                      f.status === "live" ? "bg-gold text-navy" : "bg-white/10 text-white/60"
+                    }`}
+                  >
+                    {f.status === "live" ? "Live" : "Coming soon"}
+                  </span>
+                </div>
+                <div className="font-sans text-[13px] leading-relaxed text-white/65">{f.desc}</div>
+              </>
+            );
+            return f.href ? (
+              <Link
+                key={f.title}
+                href={f.href}
+                className="rounded-2xl border border-white/15 bg-white/[0.07] p-6 backdrop-blur-md transition-colors hover:border-gold-light/50 hover:bg-white/[0.1]"
+              >
+                {body}
+              </Link>
+            ) : (
+              <div key={f.title} className="rounded-2xl border border-white/15 bg-white/[0.07] p-6 backdrop-blur-md">
+                {body}
+              </div>
+            );
+          })}
+        </div>
+        <div className="mt-10 text-center">
+          <Link href="/how-our-ai-works" className="font-sans text-[14px] font-semibold text-gold-light hover:text-white">
+            How our AI works, and how it supports your teacher →
+          </Link>
         </div>
       </div>
     </div>
