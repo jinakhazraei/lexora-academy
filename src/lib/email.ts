@@ -17,5 +17,9 @@ export async function sendNotification(to: string, subject: string, text: string
 }
 
 export function siteUrl() {
+  // On a Vercel preview, email links should open the preview, not the live site.
+  if (process.env.VERCEL_ENV === "preview" && process.env.VERCEL_BRANCH_URL) {
+    return `https://${process.env.VERCEL_BRANCH_URL}`;
+  }
   return (process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.lexora-academy-institute.online").replace(/\/$/, "");
 }

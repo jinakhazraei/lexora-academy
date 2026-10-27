@@ -60,6 +60,21 @@ Keep the existing `RESEND_API_KEY`, `CONTACT_TO_EMAIL` and `CONTACT_FROM_EMAIL`.
 
 Then **redeploy** — variables starting with `NEXT_PUBLIC_` are only picked up by a new build.
 
+### Try it on a preview first (before merging)
+
+Vercel builds a preview of every pull request, at a fixed branch address shown on the pull request
+(`lexora-academy-git-…-lexora6.vercel.app`). To test accounts and scoring there without touching the live site:
+
+1. Add the variables above with only the **Preview** box ticked. Add them for **Production** later, when you merge.
+2. In Supabase **Authentication → URL Configuration → Redirect URLs**, also add
+   `https://*-lexora6.vercel.app/**` so sign-up and password links can return to previews.
+3. In Vercel **Deployments**, open the latest preview → **⋯ → Redeploy**, so it picks up the new variables.
+4. Open the preview, sign up as a student, write an essay, then sign up a second account, make it a teacher
+   (step 6 below) and review the essay.
+
+Previews automatically use their own address for email links, even if `NEXT_PUBLIC_SITE_URL` is set. Test
+accounts live in the same Supabase project, so delete them afterwards from **Authentication → Users**.
+
 ## 6. Make yourself admin, and add teachers
 
 1. Sign up on the website with your own email (`/signup`).
