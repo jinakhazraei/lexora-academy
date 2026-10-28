@@ -45,13 +45,17 @@ Each essay costs roughly 1–2 US cents with the default model (about 2,000 inpu
 
 ## 5. Add the keys to Vercel
 
-**Vercel → your project → Settings → Environment Variables** (Production and Preview):
+**Vercel → your project → Settings → Environment Variables** (Production and Preview).
+
+This is free on every Vercel plan. Don't use the separate **Environments** page: its **Create Environment**
+button makes extra custom environments (like `staging`), a paid Pro feature you don't need — Production and
+Preview already exist. Choose the **Secret** type for `SUPABASE_SECRET_KEY` and `ANTHROPIC_API_KEY`.
 
 | Name | Where it comes from |
 | --- | --- |
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase → Project Settings → API Keys → Project URL |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase → API Keys → **Publishable** key (`sb_publishable_…`) |
-| `SUPABASE_SECRET_KEY` | Supabase → API Keys → **Secret** key (`sb_secret_…`). Keep private. |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase → **Connect** button (top of the project) → Project URL, e.g. `https://abcd1234.supabase.co` |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase → Project Settings → API Keys → **Publishable** key (`sb_publishable_…`) |
+| `SUPABASE_SECRET_KEY` | Same page → **Secret** key (`sb_secret_…`; create one if none is listed). Keep private. |
 | `ANTHROPIC_API_KEY` | Step 4 |
 | `NEXT_PUBLIC_SITE_URL` | `https://www.lexora-academy-institute.online` |
 | `WRITING_DAILY_LIMIT` | Optional, default `10` |
