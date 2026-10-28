@@ -1,5 +1,7 @@
 import { Resend } from "resend";
-import { courses } from "@/lib/data";
+import { hasLocale, localeNames } from "@/i18n/config";
+import { getDictionary } from "@/i18n/dictionaries";
+import { courseIds, type CourseId } from "@/lib/data";
 
 type ContactPayload = {
   name?: string;
@@ -7,6 +9,7 @@ type ContactPayload = {
   phone?: string;
   course?: string;
   message?: string;
+  lang?: string;
 };
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -41,7 +44,12 @@ export async function POST(request: Request) {
     );
   }
 
-  const courseName = courses.find((c) => c.id === courseId)?.name ?? (courseId || "Not specified");
+  // The email to the school is always in English, and says which language the visitor used.
+  const en = getDictionary("en");
+  const courseName = courseIds.includes(courseId as CourseId)
+    ? en.content.courses[courseId as CourseId].name
+    : courseId || "Not specified";
+  const visitorLanguage = hasLocale(body.lang) ? localeNames[body.lang].native : "English";
 
   const resend = new Resend(apiKey);
   const { error } = await resend.emails.send({
@@ -54,6 +62,7 @@ export async function POST(request: Request) {
       `Email: ${email}`,
       `Phone: ${phone || "Not provided"}`,
       `Course of interest: ${courseName}`,
+      `Site language: ${visitorLanguage}`,
       "",
       "Message:",
       message || "(no message provided)",

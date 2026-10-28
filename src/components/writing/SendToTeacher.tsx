@@ -1,41 +1,34 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { requestTeacherReview, type ReviewRequestState } from "@/app/writing/actions";
 import { FormMessage, SubmitButton, inputClasses } from "@/components/forms";
+import { useI18n } from "@/i18n/client";
+import { requestTeacherReview, type ReviewRequestState } from "@/lib/actions/writing";
 import type { ReviewStatus } from "@/lib/types";
 
 export function SendToTeacher({ essayId, status }: { essayId: string; status: ReviewStatus }) {
+  const { t } = useI18n();
+  const r = t.results;
   const [open, setOpen] = useState(false);
   const [state, action] = useActionState<ReviewRequestState, FormData>(requestTeacherReview, undefined);
 
   if (status === "reviewed") {
-    return (
-      <StatusNote tone="done">
-        Your teacher has reviewed this essay — their feedback is below.
-      </StatusNote>
-    );
+    return <StatusNote tone="done">{r.reviewed}</StatusNote>;
   }
   if (status === "requested" || state?.ok) {
-    return (
-      <StatusNote tone="waiting">
-        Sent to your teacher. Their feedback will appear here and on your dashboard.
-      </StatusNote>
-    );
+    return <StatusNote tone="waiting">{r.sent}</StatusNote>;
   }
 
   if (!open) {
     return (
       <div className="flex flex-col gap-2 rounded-xl border border-border-soft bg-cream/70 p-4 sm:flex-row sm:items-center sm:justify-between">
-        <p className="font-sans text-[13px] leading-relaxed text-muted">
-          Want a second opinion? Your teacher can check the AI feedback and dig deeper.
-        </p>
+        <p className="font-sans text-[13px] leading-relaxed text-muted">{r.sendTitle}</p>
         <button
           type="button"
           onClick={() => setOpen(true)}
           className="shrink-0 cursor-pointer rounded-lg bg-navy px-4 py-2.5 font-sans text-[13px] font-bold text-white transition-colors hover:bg-navy-panel"
         >
-          Send to my teacher
+          {r.sendButton}
         </button>
       </div>
     );
@@ -45,27 +38,27 @@ export function SendToTeacher({ essayId, status }: { essayId: string; status: Re
     <form action={action} className="flex flex-col gap-3 rounded-xl border border-border-soft bg-cream/70 p-4">
       <input type="hidden" name="essay_id" value={essayId} />
       <label htmlFor={`note-${essayId}`} className="font-sans text-[13px] font-semibold text-navy">
-        Anything you&apos;d like your teacher to look at? <span className="font-normal text-meta">(optional)</span>
+        {r.sendNote} <span className="font-normal text-meta">{t.common.optional}</span>
       </label>
       <textarea
         id={`note-${essayId}`}
         name="note"
         rows={2}
         maxLength={1000}
-        placeholder="e.g. I'm not sure my second paragraph answers the question."
+        placeholder={r.sendPlaceholder}
         className={inputClasses}
       />
-      <FormMessage error={state?.error} />
-      <div className="flex gap-2">
-        <SubmitButton variant="navy" pendingLabel="Sending…">
-          Send to my teacher
+      <FormMessage error={state?.error && r.sendErrors[state.error]} />
+      <div className="flex flex-wrap gap-2">
+        <SubmitButton variant="navy" pendingLabel={r.sending}>
+          {r.sendButton}
         </SubmitButton>
         <button
           type="button"
           onClick={() => setOpen(false)}
           className="cursor-pointer rounded-lg px-4 py-2.5 font-sans text-[13px] font-semibold text-muted hover:text-navy"
         >
-          Cancel
+          {t.common.cancel}
         </button>
       </div>
     </form>

@@ -31,7 +31,7 @@ export function SubmitButton({
       disabled={pending || disabled}
       className={`inline-flex cursor-pointer items-center justify-center rounded-lg px-5 py-3 font-sans text-[13.5px] font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${variants[variant]} ${className}`}
     >
-      {pending ? (pendingLabel ?? "Working…") : children}
+      {pending ? (pendingLabel ?? "…") : children}
     </button>
   );
 }

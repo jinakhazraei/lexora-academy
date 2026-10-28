@@ -1,7 +1,7 @@
-import type { CriterionKey, ScoreSource, Skill } from "@/lib/types";
+import type { CriterionKey, Skill } from "@/lib/types";
 
-/** Shown next to every score on the site. */
-export const BAND_DISCLAIMER = "Estimated band, not an official IELTS score.";
+// Student-facing labels and the "Estimated band, not an official IELTS score." line are in the
+// dictionaries (src/i18n). The English labels here are for the teacher area and logs.
 
 /** Bump when the privacy policy changes in a way students should re-accept. */
 export const PRIVACY_VERSION = "2026-10-27";
@@ -21,12 +21,6 @@ export const CRITERIA: { key: CriterionKey; label: string; short: string; column
   { key: "lexicalResource", label: "Lexical Resource", short: "LR", column: "lexical_resource" },
   { key: "grammarAccuracy", label: "Grammatical Range & Accuracy", short: "GRA", column: "grammar_accuracy" },
 ];
-
-export const SOURCE_LABELS: Record<ScoreSource, string> = {
-  ai: "AI estimate",
-  teacher: "Teacher-assessed",
-  self: "Practice test",
-};
 
 /** Clamp to 0–9 and round to the nearest half band. */
 export function toBand(value: number): number {

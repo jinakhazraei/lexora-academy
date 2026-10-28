@@ -20,6 +20,13 @@ You need about 30 minutes, a Supabase account (free tier is fine) and an Anthrop
 This creates the profiles, essays, teacher reviews and skill scores tables, plus the row-level security rules
 that keep each student's work private.
 
+4. Then run each later file in [`supabase/migrations`](../supabase/migrations) the same way, in number order —
+   currently [`0002_profile_locale.sql`](../supabase/migrations/0002_profile_locale.sql), which remembers each
+   student's language so their emails arrive in Armenian, Russian or English.
+
+> **Already set up?** Only run the files you haven't run yet. Each one is safe to run on a live database. The
+> site keeps working if a later file hasn't been run yet — students' emails just stay in English until it is.
+
 ## 3. Point Supabase Auth at the website
 
 **Authentication → URL Configuration**
@@ -107,7 +114,8 @@ dashboard or submit an essay. Nothing is saved before that.
 
 ## Checking it works
 
-1. Sign up as a test student, write an essay on `/writing`, press **Get feedback**.
+1. Sign up as a test student, write an essay on `/writing`, press **Get feedback**. Try it once on `/hy/writing`
+   or `/ru/writing` too — the explanations come back in that language, the corrections stay in English.
 2. Press **Send to my teacher**, then log in as a teacher and review it on `/teacher`.
 3. Back as the student, the review appears on the essay and the dashboard.
 
@@ -130,7 +138,13 @@ Redirect URLs (step 3), so Supabase fell back to the Site URL. Add it, then sign
 
 ## Before launch
 
-- Read the [Privacy Policy](../src/app/privacy/page.tsx) carefully. It's written in plain English but is not
-  legal advice — have it checked for Armenian data-protection law, and update the list of providers if you
-  don't host on Vercel.
+- Read the Privacy Policy carefully (its text is in [`src/i18n/dictionaries`](../src/i18n/dictionaries), under
+  `privacy`). It's written in plain English but is not legal advice — have it checked for Armenian
+  data-protection law, and update the list of providers if you don't host on Vercel. The Armenian and Russian
+  versions say that the English one prevails.
+- Have a native speaker read the Armenian and Russian text (`hy.ts`, `ru.ts` in the same folder). Every line
+  is there, in the same order as `en.ts`, so it's easy to fix wording without touching any page.
+- Supabase's own emails (confirm your account, reset your password) are in English. To translate them, edit
+  **Authentication → Emails → Templates** in Supabase — for example, one template with the English, Armenian
+  and Russian text one after another.
 - If you change the policy in a way students should re-accept, bump `PRIVACY_VERSION` in `src/lib/ielts.ts`.

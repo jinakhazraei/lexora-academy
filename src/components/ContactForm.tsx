@@ -2,98 +2,87 @@
 
 import { useState, type FormEvent } from "react";
 import { Button } from "@/components/Button";
-import { courses } from "@/lib/data";
+import { inputClasses, labelClasses } from "@/components/forms";
+import { useI18n } from "@/i18n/client";
 
 type Status = "idle" | "submitting" | "success" | "error";
 
-const inputClasses =
-  "w-full rounded-lg border border-border-soft px-3.5 py-3 font-sans text-sm text-ink placeholder:text-placeholder focus:border-gold focus:outline-none";
-const labelClasses = "mb-1.5 block font-sans text-[13px] font-semibold text-navy";
-
-export function ContactForm({ initialCourse }: { initialCourse?: string }) {
+export function ContactForm({
+  initialCourse,
+  courses,
+}: {
+  initialCourse?: string;
+  courses: { id: string; name: string }[];
+}) {
+  const { lang, t } = useI18n();
+  const f = t.contactForm;
   const [status, setStatus] = useState<Status>("idle");
-  const [errorMessage, setErrorMessage] = useState("");
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setStatus("submitting");
-    setErrorMessage("");
-
     const form = e.currentTarget;
-    const data = {
-      name: (form.elements.namedItem("name") as HTMLInputElement).value,
-      email: (form.elements.namedItem("email") as HTMLInputElement).value,
-      phone: (form.elements.namedItem("phone") as HTMLInputElement).value,
-      course: (form.elements.namedItem("course") as HTMLSelectElement).value,
-      message: (form.elements.namedItem("message") as HTMLTextAreaElement).value,
-    };
-
+    const value = (name: string) => (form.elements.namedItem(name) as HTMLInputElement | null)?.value ?? "";
     try {
       const res = await fetch("/api/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          name: value("name"),
+          email: value("email"),
+          phone: value("phone"),
+          course: value("course"),
+          message: value("message"),
+          lang,
+        }),
       });
-      if (!res.ok) {
-        const body = await res.json().catch(() => null);
-        throw new Error(body?.error ?? "Something went wrong. Please try again.");
-      }
+      if (!res.ok) throw new Error();
       setStatus("success");
       form.reset();
-    } catch (err) {
+    } catch {
       setStatus("error");
-      setErrorMessage(err instanceof Error ? err.message : "Something went wrong. Please try again.");
     }
   }
 
   if (status === "success") {
     return (
       <div className="rounded-[20px] border border-border-soft bg-white p-10 text-center">
-        <div className="mb-2 font-display text-xl font-semibold text-navy">Thank you!</div>
-        <p className="font-sans text-sm leading-relaxed text-muted">
-          Your message has been sent. We&apos;ll get back to you shortly to schedule your free consultation.
-        </p>
+        <div className="mb-2 font-display text-xl font-semibold text-navy">{f.thanksTitle}</div>
+        <p className="font-sans text-sm leading-relaxed text-muted">{f.thanksText}</p>
         <Button variant="outline-navy" className="mt-6" onClick={() => setStatus("idle")}>
-          Send another message
+          {f.another}
         </Button>
       </div>
     );
   }
 
   return (
-    <form onSubmit={handleSubmit} className="rounded-[20px] border border-border-soft bg-white p-10">
+    <form onSubmit={handleSubmit} className="rounded-[20px] border border-border-soft bg-white p-6 sm:p-10">
       <div className="flex flex-col gap-[18px]">
         <div>
           <label htmlFor="name" className={labelClasses}>
-            Full name
+            {f.name}
           </label>
-          <input id="name" name="name" type="text" required placeholder="Your name" className={inputClasses} />
+          <input id="name" name="name" type="text" required autoComplete="name" placeholder={f.namePlaceholder} className={inputClasses} />
         </div>
         <div>
           <label htmlFor="email" className={labelClasses}>
-            Email
+            {f.email}
           </label>
-          <input
-            id="email"
-            name="email"
-            type="email"
-            required
-            placeholder="you@email.com"
-            className={inputClasses}
-          />
+          <input id="email" name="email" type="email" required autoComplete="email" placeholder="you@email.com" className={inputClasses} />
         </div>
         <div>
           <label htmlFor="phone" className={labelClasses}>
-            Phone / WhatsApp
+            {f.phone}
           </label>
-          <input id="phone" name="phone" type="tel" placeholder="+374" className={inputClasses} />
+          <input id="phone" name="phone" type="tel" autoComplete="tel" placeholder="+374" className={inputClasses} />
         </div>
         <div>
           <label htmlFor="course" className={labelClasses}>
-            Course of interest
+            {f.course}
           </label>
           <select id="course" name="course" defaultValue={initialCourse ?? ""} className={inputClasses}>
-            <option value="">Select a course</option>
+            <option value="">{f.selectCourse}</option>
             {courses.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
@@ -103,21 +92,13 @@ export function ContactForm({ initialCourse }: { initialCourse?: string }) {
         </div>
         <div>
           <label htmlFor="message" className={labelClasses}>
-            Message
+            {f.message}
           </label>
-          <textarea
-            id="message"
-            name="message"
-            rows={3}
-            placeholder="Tell us about your goals..."
-            className={inputClasses}
-          />
+          <textarea id="message" name="message" rows={3} placeholder={f.messagePlaceholder} className={inputClasses} />
         </div>
-        {status === "error" && (
-          <div className="font-sans text-[13px] font-semibold text-red-600">{errorMessage}</div>
-        )}
+        {status === "error" && <div role="alert" className="font-sans text-[13px] font-semibold text-red-600">{f.error}</div>}
         <Button type="submit" disabled={status === "submitting"} className="mt-1.5 w-full">
-          {status === "submitting" ? "Sending…" : "Request Free Consultation"}
+          {status === "submitting" ? f.submitting : f.submit}
         </Button>
       </div>
     </form>

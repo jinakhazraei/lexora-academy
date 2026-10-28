@@ -1,9 +1,12 @@
+import type { Locale } from "@/i18n/config";
 import type { CriterionKey, GrammarFlag } from "@/lib/types";
 
 export type EssayInput = {
   prompt: string;
   essay: string;
   wordCount: number;
+  /** Language for the explanations (notes, issues, summary, next steps). Corrections stay in English. */
+  feedbackLanguage: Locale;
 };
 
 export type EssayScore = {

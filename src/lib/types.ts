@@ -26,6 +26,8 @@ export type Profile = {
   privacy_version: string | null;
   training_opt_in: boolean;
   training_opt_in_at: string | null;
+  /** hy, ru or en — set at sign-up and from the site language when the student asks for feedback. */
+  locale: "hy" | "ru" | "en" | null;
   created_at: string;
 };
 

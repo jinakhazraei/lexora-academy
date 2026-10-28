@@ -2,6 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
+import { localizePath, splitLocale } from "@/i18n/config";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 import { PRIVACY_VERSION } from "@/lib/ielts";
@@ -28,11 +29,16 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   };
 });
 
-/** For pages that need a student account. Redirects to login otherwise. */
+/**
+ * For pages that need a student account. Redirects to login otherwise, in the same
+ * language as `nextPath` (e.g. "/hy/dashboard" → "/hy/login?next=…").
+ */
 export async function requireUser(nextPath: string): Promise<CurrentUser & { profile: Profile }> {
   const user = await getCurrentUser();
   if (!user || !user.profile) {
-    redirect(`/login?next=${encodeURIComponent(nextPath)}`);
+    const { lang } = splitLocale(nextPath);
+    const login = `/login?next=${encodeURIComponent(nextPath)}`;
+    redirect(lang ? localizePath(lang, login) : login);
   }
   return user as CurrentUser & { profile: Profile };
 }
@@ -41,7 +47,8 @@ export async function requireUser(nextPath: string): Promise<CurrentUser & { pro
 export async function requireStaff(nextPath: string) {
   const user = await requireUser(nextPath);
   if (user.profile.role !== "teacher" && user.profile.role !== "admin") {
-    redirect("/dashboard");
+    const { lang } = splitLocale(nextPath);
+    redirect(lang ? localizePath(lang, "/dashboard") : "/dashboard");
   }
   return user;
 }
@@ -55,7 +62,8 @@ export function isStaff(profile: Profile | null | undefined) {
   return profile?.role === "teacher" || profile?.role === "admin";
 }
 
-export function firstName(profile: Profile | null | undefined) {
+/** The first word of the student's name, or null if they haven't given one. */
+export function firstName(profile: Profile | null | undefined): string | null {
   const name = profile?.full_name?.trim();
-  return name ? name.split(/\s+/)[0] : "there";
+  return name ? name.split(/\s+/)[0] : null;
 }

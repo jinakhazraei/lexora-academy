@@ -1,4 +1,4 @@
-import type { WhyItem } from "@/lib/data";
+import type { WhyIcon as WhyIconName } from "@/lib/data";
 
 type IconProps = { className?: string };
 
@@ -86,7 +86,7 @@ function GlobeIcon({ className }: IconProps) {
   );
 }
 
-const iconMap: Record<WhyItem["icon"], (props: IconProps) => React.JSX.Element> = {
+const iconMap: Record<WhyIconName, (props: IconProps) => React.JSX.Element> = {
   people: PeopleIcon,
   speech: SpeechIcon,
   cap: CapIcon,
@@ -97,7 +97,7 @@ const iconMap: Record<WhyItem["icon"], (props: IconProps) => React.JSX.Element> 
   globe: GlobeIcon,
 };
 
-export function WhyIcon({ icon, className }: { icon: WhyItem["icon"]; className?: string }) {
+export function WhyIcon({ icon, className }: { icon: WhyIconName; className?: string }) {
   const Cmp = iconMap[icon];
   return <Cmp className={className} />;
 }

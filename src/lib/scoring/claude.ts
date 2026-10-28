@@ -1,11 +1,14 @@
 import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 import { jsonSchemaOutputFormat } from "@anthropic-ai/sdk/helpers/json-schema";
+import type { Locale } from "@/i18n/config";
 import { TASK2_MIN_WORDS } from "@/lib/ielts";
 import { RAW_SCORE_SCHEMA, normalizeScore } from "@/lib/scoring/schema";
 import { ScorerNotConfiguredError, type EssayInput, type EssayScorer } from "@/lib/scoring/types";
 
 const DEFAULT_MODEL = "claude-sonnet-5-5";
+
+const LANGUAGE_NAMES: Record<Locale, string> = { en: "English", hy: "Armenian (Eastern Armenian, Armenian script)", ru: "Russian" };
 
 // Our own short summary of the public IELTS Writing Task 2 band descriptors.
 const SYSTEM_PROMPT = `You are an experienced IELTS Writing examiner helping the teachers at Lexora Academy, an English school in Yerevan. You give a first, estimated score for an IELTS Academic/General Writing Task 2 essay. A teacher may review your feedback later, so be accurate and calibrated rather than generous.
@@ -42,7 +45,9 @@ Grammatical Range & Accuracy — variety of structures, accuracy and punctuation
 Calibration: most intermediate learners score 5–6 and strong upper-intermediate learners 6–7. Give 8 or 9 only for genuinely excellent writing.
 
 Feedback rules:
-- Write to the student as "you", in clear, simple English (B1 level) without jargon.
+- Write to the student as "you", in clear, simple language without jargon, in the feedback language named in the request (English, Armenian or Russian). Use natural, everyday wording in that language, not a word-for-word translation.
+- Language of each field: criteria_notes, every "issue", summary and next_steps are in the feedback language. "excerpt" and "suggestion" are ALWAYS English (they are the student's English and its correction). When an explanation mentions an English word or phrase, quote it in English, e.g. «"despite of" → "despite"».
+- If the feedback language is English, use simple English (B1 level).
 - Criterion notes: 1–2 sentences each, specific to this essay.
 - grammar_flags: up to 8 of the most useful corrections. "excerpt" MUST be copied exactly from the essay (same spelling, same punctuation), at most 12 words. "suggestion" is the corrected excerpt. "issue" explains the problem in one short sentence.
 - summary: 2–3 sentences — what works, and the single most important thing to improve.
@@ -65,7 +70,7 @@ export const claudeScorer: EssayScorer = {
       messages: [
         {
           role: "user",
-          content: `<task_prompt>\n${input.prompt}\n</task_prompt>\n\n<essay word_count="${input.wordCount}">\n${input.essay}\n</essay>\n\nScore this Task 2 essay.`,
+          content: `<task_prompt>\n${input.prompt}\n</task_prompt>\n\n<essay word_count="${input.wordCount}">\n${input.essay}\n</essay>\n\n<feedback_language>${LANGUAGE_NAMES[input.feedbackLanguage]}</feedback_language>\n\nScore this Task 2 essay.`,
         },
       ],
       output_config: { format: jsonSchemaOutputFormat(RAW_SCORE_SCHEMA) },
