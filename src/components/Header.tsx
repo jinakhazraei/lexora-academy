@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { navLinks } from "@/lib/data";
+import { AccountButton } from "@/components/AccountButton";
 
 export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -28,19 +29,23 @@ export function Header() {
           </div>
         </Link>
 
-        <nav className="hidden items-center gap-8 font-sans text-sm font-semibold text-navy md:flex">
-          {navLinks.map((link) => (
-            <Link key={link.label} href={link.href} className="text-navy hover:text-gold">
-              {link.label}
-            </Link>
-          ))}
-        </nav>
+        <div className="hidden items-center gap-8 lg:flex">
+          <nav className="flex items-center gap-7 font-sans text-sm font-semibold text-navy">
+            {navLinks.map((link) => (
+              <Link key={link.label} href={link.href} className="text-navy hover:text-gold">
+                {link.label}
+              </Link>
+            ))}
+          </nav>
+          <AccountButton />
+        </div>
 
         <button
           type="button"
           aria-label="Toggle menu"
+          aria-expanded={mobileOpen}
           onClick={() => setMobileOpen((v) => !v)}
-          className="flex flex-col gap-1 p-1.5 md:hidden"
+          className="flex flex-col gap-1 p-1.5 lg:hidden"
         >
           <span className="h-0.5 w-[22px] bg-navy" />
           <span className="h-0.5 w-[22px] bg-navy" />
@@ -49,7 +54,7 @@ export function Header() {
       </div>
 
       {mobileOpen && (
-        <nav className="flex flex-col bg-navy px-5 pb-4 pt-2 md:hidden">
+        <nav className="flex flex-col bg-navy px-5 pb-4 pt-2 lg:hidden">
           {navLinks.map((link) => (
             <Link
               key={link.label}
@@ -60,6 +65,7 @@ export function Header() {
               {link.label}
             </Link>
           ))}
+          <AccountButton variant="menu" onNavigate={() => setMobileOpen(false)} />
         </nav>
       )}
     </div>

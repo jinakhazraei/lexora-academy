@@ -125,14 +125,69 @@ export const generalLevels = [
   { level: "C2", label: "Proficient" },
 ];
 
-export const aiFeatures = [
-  { title: "AI Placement Test", desc: "Get matched to the right level in minutes." },
-  { title: "AI Writing Feedback", desc: "Instant, detailed feedback on structure and grammar." },
-  { title: "AI Speaking Evaluation", desc: "Pronunciation and fluency scoring after every recording." },
-  { title: "AI Grammar Assistant", desc: "Catches patterns your teacher can dig deeper into." },
-  { title: "Vocabulary Builder", desc: "Spaced repetition tuned to your course content." },
-  { title: "Personalized Study Plans", desc: "A weekly plan that adapts as you progress." },
-  { title: "Progress Dashboard", desc: "See your growth across all four skills over time." },
+export type AiFeature = {
+  title: string;
+  desc: string;
+  status: "live" | "soon";
+  href?: string;
+  /** Longer explanations for the "How our AI works" page. */
+  what: string;
+  teacher: string;
+};
+
+export const aiFeatures: AiFeature[] = [
+  {
+    title: "AI Placement Test",
+    desc: "Get matched to the right level in minutes.",
+    status: "soon",
+    what: "A short adaptive test that suggests a starting CEFR level (A1–C2).",
+    teacher: "A teacher confirms your level in your free consultation before you're placed in a class.",
+  },
+  {
+    title: "AI Writing Feedback",
+    desc: "Instant, detailed feedback on structure and grammar.",
+    status: "live",
+    href: "/writing",
+    what: "Reads your IELTS Task 2 essay and gives an estimated band, a band and note for each of the four criteria, grammar corrections and a short summary.",
+    teacher: "Any result can be sent to your teacher with one click. Their review appears next to the AI's.",
+  },
+  {
+    title: "AI Speaking Evaluation",
+    desc: "Pronunciation and fluency scoring after every recording.",
+    status: "soon",
+    what: "Will listen to short recorded answers and comment on fluency and pronunciation.",
+    teacher: "Speaking bands on your dashboard currently come from your teacher's mock interviews.",
+  },
+  {
+    title: "AI Grammar Assistant",
+    desc: "Catches patterns your teacher can dig deeper into.",
+    status: "live",
+    href: "/writing",
+    what: "Part of Writing Feedback: flags the exact phrases with grammar, spelling, punctuation or word-choice problems and suggests a correction.",
+    teacher: "Repeated mistakes are easy for your teacher to spot across your saved essays.",
+  },
+  {
+    title: "Vocabulary Builder",
+    desc: "Spaced repetition tuned to your course content.",
+    status: "soon",
+    what: "Will turn words from your lessons into short review sessions, spaced out over time.",
+    teacher: "Teachers will choose the word lists, so practice matches what you study in class.",
+  },
+  {
+    title: "Personalized Study Plans",
+    desc: "A weekly plan that adapts as you progress.",
+    status: "soon",
+    what: "Will suggest a weekly plan based on your scores, target band and test date.",
+    teacher: "For now, your dashboard shows the skill with the biggest gap to your target, and your teacher builds your plan.",
+  },
+  {
+    title: "Progress Dashboard",
+    desc: "See your growth across all four skills over time.",
+    status: "live",
+    href: "/dashboard",
+    what: "Shows your latest band and trend in Listening, Reading, Writing and Speaking against your target band.",
+    teacher: "Teachers see the same picture and can add scores from mock tests they mark.",
+  },
 ];
 
 export type Testimonial = {
@@ -200,6 +255,7 @@ export const contact = {
 
 export const navLinks = [
   { label: "Courses", href: "/courses" },
+  { label: "Writing Feedback", href: "/writing" },
   { label: "IELTS", href: "/courses#ielts" },
   { label: "TOEFL", href: "/courses#toefl" },
   { label: "Business English", href: "/courses#business" },
