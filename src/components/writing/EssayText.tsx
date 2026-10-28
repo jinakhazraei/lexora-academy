@@ -41,5 +41,9 @@ export function EssayText({ body, flags = [] }: { body: string; flags?: GrammarF
   }
   if (cursor < body.length) parts.push(body.slice(cursor));
 
-  return <div className="whitespace-pre-wrap font-sans text-[15px] leading-[1.8] text-ink">{parts}</div>;
+  return (
+    <div lang="en" className="whitespace-pre-wrap font-sans text-[15px] leading-[1.8] text-ink">
+      {parts}
+    </div>
+  );
 }

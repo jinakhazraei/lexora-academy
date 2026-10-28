@@ -1,7 +1,13 @@
-import { BAND_DISCLAIMER, formatBand } from "@/lib/ielts";
+"use client";
+
+import { fmt, formatDate } from "@/i18n/config";
+import { useI18n } from "@/i18n/client";
+import { formatBand } from "@/lib/ielts";
+import type { ScoreSource } from "@/lib/types";
 
 /** The line that sits next to every score on the site. */
 export function BandDisclaimer({ className = "", tone = "muted" }: { className?: string; tone?: "muted" | "light" }) {
+  const { t } = useI18n();
   return (
     <p
       className={`flex items-center gap-1.5 font-sans text-[11.5px] leading-snug ${
@@ -13,7 +19,7 @@ export function BandDisclaimer({ className = "", tone = "muted" }: { className?:
         <line x1="8" y1="7" x2="8" y2="11.2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
         <circle cx="8" cy="4.9" r="0.95" fill="currentColor" />
       </svg>
-      {BAND_DISCLAIMER}
+      {t.common.disclaimer}
     </p>
   );
 }
@@ -30,6 +36,7 @@ export function BandMeter({
   label: string;
   height?: number;
 }) {
+  const { t } = useI18n();
   const pct = value === null ? 0 : (value / 9) * 100;
   const targetPct = target ? (target / 9) * 100 : null;
   return (
@@ -39,7 +46,13 @@ export function BandMeter({
       aria-valuemin={0}
       aria-valuemax={9}
       aria-valuenow={value ?? undefined}
-      aria-valuetext={value === null ? "No score yet" : `Band ${formatBand(value)}${target ? ` of target ${formatBand(target)}` : ""}`}
+      aria-valuetext={
+        value === null
+          ? t.scores.noScore
+          : target
+            ? fmt(t.scores.bandOfTarget, { band: formatBand(value), target: formatBand(target) })
+            : fmt(t.scores.band, { band: formatBand(value) })
+      }
       className="relative w-full rounded-full bg-cream-alt"
       style={{ height }}
     >
@@ -50,7 +63,7 @@ export function BandMeter({
         <div
           className="absolute -top-[4px] -bottom-[4px] w-[3px] -translate-x-1/2 rounded-full bg-gold ring-2 ring-white"
           style={{ left: `${targetPct}%` }}
-          title={`Target ${formatBand(target)}`}
+          title={fmt(t.scores.target, { band: formatBand(target) })}
         />
       )}
     </div>
@@ -59,6 +72,7 @@ export function BandMeter({
 
 /** One of the four writing criteria: label, band and bar, with an optional note. */
 export function CriterionBar({ label, short, band, note }: { label: string; short: string; band: number; note?: string }) {
+  const { t } = useI18n();
   return (
     <div>
       <div className="mb-1.5 flex items-baseline justify-between gap-3">
@@ -67,7 +81,7 @@ export function CriterionBar({ label, short, band, note }: { label: string; shor
         </div>
         <div className="font-display text-lg font-semibold tabular-nums text-navy">{formatBand(band)}</div>
       </div>
-      <BandMeter value={band} label={`${label} band`} height={8} />
+      <BandMeter value={Number(band)} label={fmt(t.results.bandOf, { label })} height={8} />
       {note && <p className="mt-2 font-sans text-[13px] leading-relaxed text-muted">{note}</p>}
     </div>
   );
@@ -75,10 +89,11 @@ export function CriterionBar({ label, short, band, note }: { label: string; shor
 
 /** Small "6.5" pill for lists. */
 export function BandPill({ band, className = "" }: { band: number | null; className?: string }) {
+  const { t } = useI18n();
   return (
     <span
       className={`inline-flex min-w-[46px] items-center justify-center rounded-full bg-navy px-2.5 py-1 font-sans text-[13px] font-bold tabular-nums text-gold-light ${className}`}
-      title="Estimated band, not an official IELTS score"
+      title={t.common.disclaimer}
     >
       {formatBand(band)}
     </span>
@@ -92,11 +107,12 @@ export function Sparkline({
   width = 220,
   height = 44,
 }: {
-  points: { band: number; date: string; source: string }[];
+  points: { band: number; date: string; source: ScoreSource }[];
   label: string;
   width?: number;
   height?: number;
 }) {
+  const { lang, t } = useI18n();
   if (points.length < 2) return null;
   const pad = 5;
   const bands = points.map((p) => p.band);
@@ -119,7 +135,13 @@ export function Sparkline({
       {points.map((p, i) => (
         <g key={`${p.date}-${i}`}>
           <circle cx={x(i)} cy={y(p.band)} r="9" fill="transparent">
-            <title>{`${p.date} · band ${formatBand(p.band)} · ${p.source}`}</title>
+            <title>
+              {fmt(t.scores.point, {
+                date: formatDate(p.date, lang, { year: false }),
+                band: formatBand(p.band),
+                source: t.sources[p.source],
+              })}
+            </title>
           </circle>
           {i === points.length - 1 && (
             <circle cx={x(i)} cy={y(last.band)} r="4" fill="var(--color-gold)" stroke="white" strokeWidth="2" />

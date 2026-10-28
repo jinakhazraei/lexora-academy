@@ -1,32 +1,29 @@
-import { SKILLS, SOURCE_LABELS, overallFromSkills } from "@/lib/ielts";
-import type { Skill, SkillScoreRow } from "@/lib/types";
+import { SKILLS, overallFromSkills } from "@/lib/ielts";
+import type { ScoreSource, Skill, SkillScoreRow } from "@/lib/types";
 
+/** Labels and dates are left to the page, which shows them in the visitor's language. */
 export type SkillProgress = {
   skill: Skill;
-  label: string;
   latest: SkillScoreRow | null;
   first: SkillScoreRow | null;
   change: number | null;
   count: number;
-  points: { band: number; date: string; source: string }[];
+  points: { band: number; date: string; source: ScoreSource }[];
 };
-
-const shortDate = (d: string) => new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 
 /** Group a student's scores (oldest first) into one progress summary per skill. */
 export function summarizeProgress(scores: SkillScoreRow[]): SkillProgress[] {
-  return SKILLS.map(({ key, label }) => {
+  return SKILLS.map(({ key }) => {
     const rows = scores.filter((s) => s.skill === key);
     const latest = rows.at(-1) ?? null;
     const first = rows[0] ?? null;
     return {
       skill: key,
-      label,
       latest,
       first,
       change: rows.length >= 2 && latest && first ? latest.band - first.band : null,
       count: rows.length,
-      points: rows.slice(-12).map((r) => ({ band: r.band, date: shortDate(r.taken_on), source: SOURCE_LABELS[r.source] })),
+      points: rows.slice(-12).map((r) => ({ band: Number(r.band), date: r.taken_on, source: r.source })),
     };
   });
 }
@@ -41,5 +38,5 @@ export function daysUntil(date: string | null): number | null {
 export function overallEstimate(progress: SkillProgress[]) {
   const latest = progress.map((p) => p.latest?.band);
   if (latest.some((b) => b === undefined)) return null;
-  return overallFromSkills(latest as number[]);
+  return overallFromSkills(latest.map(Number));
 }

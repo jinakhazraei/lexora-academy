@@ -1,15 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { faqItems } from "@/lib/data";
+import { useI18n } from "@/i18n/client";
 
 export function FaqAccordion() {
   const [openIndex, setOpenIndex] = useState(0);
+  const { t } = useI18n();
+  const faqItems = t.content.faq;
 
   return (
     <div className="mx-auto max-w-[800px] px-6 pb-24 md:px-12 md:pb-28">
       <h2 className="mb-11 text-center font-display text-[28px] font-semibold text-navy md:text-[34px]">
-        Frequently asked questions
+        {t.home.faqTitle}
       </h2>
       {faqItems.map((item, i) => {
         const isOpen = openIndex === i;

@@ -1,13 +1,19 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { checkboxClasses } from "@/components/ConsentFields";
+import Link from "@/components/LocaleLink";
 import { BandDisclaimer } from "@/components/scores";
 import { ResultsPanel } from "@/components/writing/ResultsPanel";
+import { fmt, plural } from "@/i18n/config";
+import { useI18n } from "@/i18n/client";
+import type { Dictionary } from "@/i18n/dictionaries";
+import { rich } from "@/i18n/rich";
 import { TASK2_MIN_WORDS, countWords } from "@/lib/ielts";
 import { CUSTOM_PROMPT_ID, TASK2_PROMPTS, type QuestionType } from "@/lib/writing-prompts";
 import type { EssayRow } from "@/lib/types";
+
+type ErrorCode = keyof Dictionary["writing"]["errors"];
 
 const DRAFT_KEY = "lexora-writing-draft-v1";
 const MIN_WORDS_TO_SCORE = 50;
@@ -36,7 +42,10 @@ export function WritingStudio({
   const [customPrompt, setCustomPrompt] = useState("");
   const [essay, setEssay] = useState("");
   const [status, setStatus] = useState<Status>("idle");
-  const [error, setError] = useState<{ message: string; code?: string } | null>(null);
+  const { lang, t } = useI18n();
+  const w = t.writing;
+  const topicLabel = (topic: string) => w.topics[topic as keyof typeof w.topics] ?? topic;
+  const [error, setError] = useState<{ message: string; code?: ErrorCode } | null>(null);
   const [result, setResult] = useState<EssayRow | null>(null);
   const [consentNeeded, setConsentNeeded] = useState(needsConsent);
   const [consentChecked, setConsentChecked] = useState(false);
@@ -116,12 +125,14 @@ export function WritingStudio({
           promptText,
           essay,
           consent: consentNeeded ? consentChecked : undefined,
+          lang,
         }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        if (data.code === "consent_required") setConsentNeeded(true);
-        setError({ message: data.error ?? "Something went wrong. Please try again.", code: data.code });
+        const code: ErrorCode = typeof data.code === "string" && data.code in w.errors ? data.code : "generic";
+        if (code === "consent_required") setConsentNeeded(true);
+        setError({ message: fmt(w.errors[code], { min: data.min ?? "", max: data.max ?? "", limit: data.limit ?? "" }), code });
         setStatus("error");
         return;
       }
@@ -134,7 +145,7 @@ export function WritingStudio({
         }
       });
     } catch {
-      setError({ message: "You seem to be offline. Your essay is saved here — try again when you're connected." });
+      setError({ message: w.offline });
       setStatus("error");
     }
   }
@@ -146,11 +157,11 @@ export function WritingStudio({
         <section className="rounded-[20px] border border-border-soft bg-white p-5 sm:p-6">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
             <label htmlFor="prompt" className="font-sans text-xs font-bold uppercase tracking-[0.1em] text-navy">
-              1 · Choose a Task 2 question
+              {w.step1}
             </label>
             {!isCustom && (
               <button type="button" onClick={pickRandom} className="cursor-pointer font-sans text-[13px] font-semibold text-gold hover:text-navy">
-                ↻ Surprise me
+                {w.surprise}
               </button>
             )}
           </div>
@@ -161,34 +172,37 @@ export function WritingStudio({
             className="w-full rounded-lg border border-border-soft bg-white px-3.5 py-3 font-sans text-sm text-ink focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/20"
           >
             {TYPE_ORDER.map((type) => (
-              <optgroup key={type} label={type}>
+              <optgroup key={type} label={w.types[type]}>
                 {TASK2_PROMPTS.filter((p) => p.type === type).map((p) => (
                   <option key={p.id} value={p.id}>
-                    {p.topic} — {p.text.length > 70 ? `${p.text.slice(0, 70)}…` : p.text}
+                    {topicLabel(p.topic)} — {p.text.length > 70 ? `${p.text.slice(0, 70)}…` : p.text}
                   </option>
                 ))}
               </optgroup>
             ))}
-            <option value={CUSTOM_PROMPT_ID}>✎ Use my own question</option>
+            <option value={CUSTOM_PROMPT_ID}>{w.ownQuestion}</option>
           </select>
 
           {isCustom ? (
             <textarea
-              aria-label="Your Task 2 question"
+              aria-label={w.ownLabel}
               value={customPrompt}
               onChange={(e) => setCustomPrompt(e.target.value)}
               rows={3}
               maxLength={1000}
-              placeholder="Paste or type the Task 2 question you're answering…"
+              placeholder={w.ownPlaceholder}
+              lang="en"
               className="mt-3 w-full rounded-lg border border-border-soft bg-cream/50 px-3.5 py-3 font-sans text-[14.5px] leading-relaxed text-ink placeholder:text-placeholder focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/20"
             />
           ) : (
             selected && (
               <div className="mt-3 rounded-xl border-l-[3px] border-gold bg-cream px-4 py-3.5">
                 <div className="mb-1.5 font-sans text-[11px] font-bold uppercase tracking-wide text-badge-text">
-                  {selected.topic} · {selected.type}
+                  {topicLabel(selected.topic)} · {w.types[selected.type]}
                 </div>
-                <p className="font-display text-[17px] leading-relaxed text-navy">{selected.text}</p>
+                <p lang="en" className="font-display text-[17px] leading-relaxed text-navy">
+                  {selected.text}
+                </p>
               </div>
             )
           )}
@@ -197,9 +211,9 @@ export function WritingStudio({
         <section className="rounded-[20px] border border-border-soft bg-white p-5 sm:p-6">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
             <label htmlFor="essay" className="font-sans text-xs font-bold uppercase tracking-[0.1em] text-navy">
-              2 · Write your essay
+              {w.step2}
             </label>
-            <span className="font-sans text-[12px] text-meta">Aim for 40 minutes, as in the exam</span>
+            <span className="font-sans text-[12px] text-meta">{w.timeHint}</span>
           </div>
           <textarea
             id="essay"
@@ -208,7 +222,8 @@ export function WritingStudio({
             spellCheck={false}
             autoCorrect="off"
             autoCapitalize="sentences"
-            placeholder="Start writing here. Plan an introduction, two or three body paragraphs and a conclusion…"
+            lang="en"
+            placeholder={w.essayPlaceholder}
             className="min-h-[380px] w-full resize-y rounded-lg border border-border-soft bg-cream/40 px-4 py-3.5 font-sans text-[15px] leading-[1.75] text-ink placeholder:text-placeholder focus:border-gold focus:bg-white focus:outline-none focus:ring-2 focus:ring-gold/20 sm:min-h-[440px]"
           />
 
@@ -216,12 +231,12 @@ export function WritingStudio({
           <div className="mt-3" aria-live="polite">
             <div className="mb-1.5 flex flex-wrap items-baseline justify-between gap-2 font-sans text-[13px]">
               <span className="font-semibold text-navy">
-                <span className="tabular-nums">{words}</span> {words === 1 ? "word" : "words"}
+                <span className="tabular-nums">{plural(words, lang, t.common.wordForms)}</span>
                 <span className={`ml-2 font-normal ${reachedMin ? "text-[#2f6b2a]" : "text-meta"}`}>
-                  {reachedMin ? "✓ Task 2 minimum reached" : `${TASK2_MIN_WORDS - words} to go for the ${TASK2_MIN_WORDS}-word minimum`}
+                  {reachedMin ? w.minReached : fmt(w.toGo, { count: TASK2_MIN_WORDS - words, min: TASK2_MIN_WORDS })}
                 </span>
               </span>
-              <span className="text-[12px] text-meta">{draftSaved ? "Draft saved on this device" : ""}</span>
+              <span className="text-[12px] text-meta">{draftSaved ? w.draftSaved : ""}</span>
             </div>
             <div className="h-1.5 w-full rounded-full bg-cream-alt">
               <div
@@ -237,17 +252,15 @@ export function WritingStudio({
           {!signedIn ? (
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <p className="font-sans text-sm leading-relaxed text-muted">
-                {accountsEnabled
-                  ? "Log in or create a free student account to get feedback. Your draft stays here."
-                  : "Online feedback is coming soon. Your draft is saved on this device."}
+                {accountsEnabled ? w.signedOutAccounts : w.signedOutSoon}
               </p>
               {accountsEnabled && (
                 <div className="flex shrink-0 gap-2">
-                  <Link href="/login?next=/writing" className="rounded-lg border-[1.5px] border-navy px-4 py-2.5 font-sans text-[13px] font-bold text-navy hover:bg-navy hover:text-white">
-                    Log in
+                  <Link href={`/login?next=/${lang}/writing`} className="rounded-lg border-[1.5px] border-navy px-4 py-2.5 font-sans text-[13px] font-bold text-navy hover:bg-navy hover:text-white">
+                    {w.login}
                   </Link>
-                  <Link href="/signup?next=/writing" className="rounded-lg bg-gold px-4 py-2.5 font-sans text-[13px] font-bold text-navy hover:text-navy hover:brightness-95">
-                    Create account
+                  <Link href={`/signup?next=/${lang}/writing`} className="rounded-lg bg-gold px-4 py-2.5 font-sans text-[13px] font-bold text-navy hover:text-navy hover:brightness-95">
+                    {w.createAccount}
                   </Link>
                 </div>
               )}
@@ -263,11 +276,13 @@ export function WritingStudio({
                     className={checkboxClasses}
                   />
                   <span>
-                    Before we save your first essay: I&apos;ve read the{" "}
-                    <Link href="/privacy" target="_blank" className="font-semibold">
-                      Privacy Policy
-                    </Link>{" "}
-                    and agree that Lexora Academy can store my essays, scores and teacher feedback.
+                    {rich(w.consent, {
+                      policy: (
+                        <Link href="/privacy" target="_blank" className="font-semibold">
+                          {t.footer.privacy}
+                        </Link>
+                      ),
+                    })}
                   </span>
                 </label>
               )}
@@ -277,16 +292,14 @@ export function WritingStudio({
                   {error.code === "login_required" && (
                     <>
                       {" "}
-                      <Link href="/login?next=/writing">Log in again</Link>
+                      <Link href={`/login?next=/${lang}/writing`}>{w.logInAgain}</Link>
                     </>
                   )}
                 </div>
               )}
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <p className="font-sans text-[13px] leading-relaxed text-muted">
-                  {words < MIN_WORDS_TO_SCORE
-                    ? `Write at least ${MIN_WORDS_TO_SCORE} words to get feedback.`
-                    : "Feedback usually takes 10–20 seconds."}
+                  {words < MIN_WORDS_TO_SCORE ? fmt(w.minToScore, { min: MIN_WORDS_TO_SCORE }) : w.takesTime}
                 </p>
                 <button
                   type="button"
@@ -294,7 +307,7 @@ export function WritingStudio({
                   disabled={!canSubmit}
                   className="inline-flex shrink-0 cursor-pointer items-center justify-center rounded-lg bg-gold px-6 py-3.5 font-sans text-[14px] font-bold text-navy transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {status === "scoring" ? "Reading your essay…" : result ? "Get feedback again" : "Get feedback"}
+                  {status === "scoring" ? w.reading : result ? w.getAgain : w.getFeedback}
                 </button>
               </div>
             </div>
@@ -310,7 +323,7 @@ export function WritingStudio({
           <div className="flex flex-col gap-4">
             <ResultsPanel essay={result} showTeacherButton showHistoryLink />
             <button type="button" onClick={startNew} className="cursor-pointer self-start font-sans text-[13px] font-semibold text-muted hover:text-navy">
-              Start a new essay
+              {w.newEssay}
             </button>
           </div>
         ) : (
@@ -322,18 +335,14 @@ export function WritingStudio({
 }
 
 function EmptyResults() {
-  const items = [
-    ["Overall band", "An estimated Task 2 band from 0 to 9."],
-    ["Four criteria", "Task Response, Coherence & Cohesion, Lexical Resource, and Grammar — each with a note."],
-    ["Grammar flags", "The exact phrases to fix, with a corrected version."],
-    ["A short summary", "What's working, and the one thing to improve next."],
-  ];
+  const { t } = useI18n();
+  const w = t.writing;
   return (
     <div className="rounded-[20px] border border-dashed border-[#d8cfba] bg-white/60 p-6 sm:p-7">
-      <div className="mb-1 font-sans text-xs font-bold uppercase tracking-[0.1em] text-navy">3 · Your feedback</div>
-      <p className="mb-5 font-sans text-sm text-muted">After you submit, you&apos;ll see:</p>
+      <div className="mb-1 font-sans text-xs font-bold uppercase tracking-[0.1em] text-navy">{w.step3}</div>
+      <p className="mb-5 font-sans text-sm text-muted">{w.youllSee}</p>
       <ul className="flex flex-col gap-4">
-        {items.map(([title, desc]) => (
+        {w.preview.map(([title, desc]) => (
           <li key={title} className="flex gap-3">
             <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-gold" />
             <div>
@@ -346,9 +355,9 @@ function EmptyResults() {
       <div className="mt-6 border-t border-cream-alt pt-4">
         <BandDisclaimer />
         <p className="mt-2 font-sans text-[12px] leading-relaxed text-meta">
-          You can send any result to your teacher for a second look.{" "}
+          {w.sendAnyHint}{" "}
           <Link href="/how-our-ai-works" className="font-semibold">
-            How our AI works
+            {w.howAi}
           </Link>
         </p>
       </div>
@@ -357,14 +366,15 @@ function EmptyResults() {
 }
 
 function ScoringSkeleton() {
+  const { t } = useI18n();
   return (
     <div className="flex flex-col gap-5" aria-busy="true" aria-live="polite">
       <div className="rounded-[20px] bg-navy p-7">
         <div className="flex items-center gap-5">
           <div className="h-[92px] w-[92px] animate-pulse rounded-full border-[3px] border-gold-light/40" />
           <div className="flex-1">
-            <div className="mb-2 font-sans text-[12px] font-bold uppercase tracking-[0.14em] text-gold-light">Reading your essay…</div>
-            <div className="font-sans text-sm text-white/60">Checking the four criteria and your language. Usually 10–20 seconds.</div>
+            <div className="mb-2 font-sans text-[12px] font-bold uppercase tracking-[0.14em] text-gold-light">{t.writing.reading}</div>
+            <div className="font-sans text-sm text-white/60">{t.writing.readingHint}</div>
           </div>
         </div>
       </div>

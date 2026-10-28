@@ -6,7 +6,7 @@ without touching the page, the database or the dashboard.
 ```ts
 interface EssayScorer {
   name: string;
-  score(input: { prompt: string; essay: string; wordCount: number }): Promise<EssayScore>;
+  score(input: { prompt: string; essay: string; wordCount: number; feedbackLanguage: "en" | "hy" | "ru" }): Promise<EssayScore>;
 }
 ```
 
@@ -40,8 +40,12 @@ The site sends:
 POST /score
 Content-Type: application/json
 
-{ "prompt": "Some people think…", "essay": "Nowadays more and more…", "word_count": 273 }
+{ "prompt": "Some people think…", "essay": "Nowadays more and more…", "word_count": 273, "feedback_language": "hy" }
 ```
+
+`feedback_language` is the language the student uses the site in: `en`, `hy` (Armenian) or `ru` (Russian).
+Write the notes, each flag's `issue`, the `summary` and `next_steps` in that language. `excerpt` and
+`suggestion` always stay in English. A model that only writes English can ignore it — the site still works.
 
 Your endpoint returns (within 55 seconds):
 

@@ -1,6 +1,10 @@
-import Link from "next/link";
+"use client";
+
+import Link from "@/components/LocaleLink";
 import { BandDisclaimer, CriterionBar } from "@/components/scores";
 import { SendToTeacher } from "@/components/writing/SendToTeacher";
+import { fmt, formatDate, plural } from "@/i18n/config";
+import { useI18n } from "@/i18n/client";
 import { CRITERIA, TASK2_MIN_WORDS, formatBand } from "@/lib/ielts";
 import type { EssayRow, GrammarFlag } from "@/lib/types";
 
@@ -19,10 +23,6 @@ const CATEGORY_STYLES: Record<GrammarFlag["category"], string> = {
   "word choice": "bg-badge-bg text-badge-text",
   cohesion: "bg-[#ecf6f1] text-[#25664a]",
 };
-
-export function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-}
 
 type EssayForResults = Pick<
   EssayRow,
@@ -52,6 +52,8 @@ export function ResultsPanel({
   showTeacherButton?: boolean;
   showHistoryLink?: boolean;
 }) {
+  const { lang, t } = useI18n();
+  const r = t.results;
   const bands = {
     taskResponse: essay.task_response,
     coherenceCohesion: essay.coherence_cohesion,
@@ -72,12 +74,10 @@ export function ResultsPanel({
               {formatBand(essay.overall_band)}
             </span>
           </div>
-          <div>
-            <div className="mb-1 font-sans text-[12px] font-bold uppercase tracking-[0.14em] text-gold-light">
-              Overall writing band
-            </div>
+          <div className="min-w-0">
+            <div className="mb-1 font-sans text-[12px] font-bold uppercase tracking-[0.14em] text-gold-light">{r.overall}</div>
             <div className="font-sans text-sm text-white/70">
-              {essay.word_count} words · {formatDate(essay.created_at)}
+              {fmt(r.wordsDate, { words: plural(essay.word_count, lang, t.common.wordForms), date: formatDate(essay.created_at, lang) })}
             </div>
           </div>
         </div>
@@ -86,42 +86,45 @@ export function ResultsPanel({
 
       {underLength && (
         <div className="rounded-xl border border-[#ecdcab] bg-badge-bg px-4 py-3 font-sans text-[13px] leading-relaxed text-badge-text">
-          This essay is under {TASK2_MIN_WORDS} words, which lowers Task Response in the real exam.
+          {fmt(r.underLength, { min: TASK2_MIN_WORDS })}
         </div>
       )}
 
       {essay.summary && (
-        <Section title="Summary">
+        <Section title={r.summary}>
           <p className="font-sans text-[14.5px] leading-relaxed text-ink">{essay.summary}</p>
         </Section>
       )}
 
-      <Section title="The four criteria">
+      <Section title={r.criteria}>
         <div className="flex flex-col gap-5">
           {CRITERIA.map((c) => (
-            <CriterionBar key={c.key} label={c.label} short={c.short} band={bands[c.key]} note={essay.criteria_notes?.[c.key]} />
+            <CriterionBar key={c.key} label={t.criteria[c.key]} short={c.short} band={bands[c.key]} note={essay.criteria_notes?.[c.key]} />
           ))}
         </div>
         <BandDisclaimer className="mt-5" />
       </Section>
 
-      <Section title={`Grammar & language notes${flags.length ? ` (${flags.length})` : ""}`}>
+      <Section title={`${r.grammarNotes}${flags.length ? ` (${flags.length})` : ""}`}>
         {flags.length === 0 ? (
-          <p className="font-sans text-sm text-muted">No major language errors were flagged in this essay.</p>
+          <p className="font-sans text-sm text-muted">{r.noFlags}</p>
         ) : (
           <ul className="flex flex-col divide-y divide-cream-alt">
             {flags.map((f, i) => (
               <li key={`${f.excerpt}-${i}`} className="py-3.5 first:pt-0 last:pb-0">
                 <div className="mb-2 flex items-center gap-2">
                   <span className="font-sans text-[11px] font-bold tabular-nums text-meta">{i + 1}</span>
-                  <span className={`inline-block rounded-full px-2 py-0.5 font-sans text-[11px] font-bold capitalize ${CATEGORY_STYLES[f.category] ?? CATEGORY_STYLES.grammar}`}>
-                    {f.category}
+                  <span className={`inline-block rounded-full px-2 py-0.5 font-sans text-[11px] font-bold ${CATEGORY_STYLES[f.category] ?? CATEGORY_STYLES.grammar}`}>
+                    {t.flagCategories[f.category] ?? f.category}
                   </span>
                 </div>
-                <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 font-sans text-[14px]">
+                {/* The essay and its corrections are English, whatever language the page is in. */}
+                <div lang="en" className="flex flex-wrap items-baseline gap-x-2 gap-y-1 font-sans text-[14px]">
                   <span className="text-[#9a3434] line-through decoration-[#9a3434]/50">{f.excerpt}</span>
                   <span aria-hidden="true" className="text-meta">→</span>
-                  <span className="sr-only">should be</span>
+                  <span className="sr-only" lang={lang}>
+                    {r.shouldBe}
+                  </span>
                   <span className="font-semibold text-[#2f6b2a]">{f.suggestion}</span>
                 </div>
                 {f.issue && <p className="mt-1 font-sans text-[13px] leading-relaxed text-muted">{f.issue}</p>}
@@ -132,7 +135,7 @@ export function ResultsPanel({
       </Section>
 
       {steps.length > 0 && (
-        <Section title="What to practise next">
+        <Section title={r.practiseNext}>
           <ul className="flex flex-col gap-2">
             {steps.map((s) => (
               <li key={s} className="flex gap-2 font-sans text-[14px] leading-relaxed text-ink">
@@ -145,24 +148,24 @@ export function ResultsPanel({
       )}
 
       {reviews.length > 0 && (
-        <Section title="Teacher feedback">
+        <Section title={r.teacherFeedback}>
           <div className="flex flex-col gap-4">
-            {reviews.map((r) => (
-              <div key={r.id} className="border-l-[3px] border-gold pl-4">
+            {reviews.map((rev) => (
+              <div key={rev.id} className="border-l-[3px] border-gold pl-4">
                 <div className="mb-1 flex flex-wrap items-center gap-x-3 gap-y-1 font-sans text-[12.5px] text-meta">
-                  <span className="font-semibold text-navy">{r.teacher_name || "Your teacher"}</span>
-                  <span>{formatDate(r.created_at)}</span>
-                  {r.overall_band !== null && (
+                  <span className="font-semibold text-navy">{rev.teacher_name || r.yourTeacher}</span>
+                  <span>{formatDate(rev.created_at, lang)}</span>
+                  {rev.overall_band !== null && (
                     <span className="rounded-full bg-badge-bg px-2 py-0.5 font-bold text-badge-text">
-                      Teacher band {formatBand(r.overall_band)}
+                      {fmt(r.teacherBand, { band: formatBand(rev.overall_band) })}
                     </span>
                   )}
                 </div>
-                <p className="whitespace-pre-line font-sans text-[14px] leading-relaxed text-ink">{r.comment}</p>
+                <p className="whitespace-pre-line font-sans text-[14px] leading-relaxed text-ink">{rev.comment}</p>
               </div>
             ))}
           </div>
-          {reviews.some((r) => r.overall_band !== null) && <BandDisclaimer className="mt-4" />}
+          {reviews.some((rev) => rev.overall_band !== null) && <BandDisclaimer className="mt-4" />}
         </Section>
       )}
 
@@ -170,7 +173,7 @@ export function ResultsPanel({
 
       {showHistoryLink && (
         <Link href="/writing/history" className="font-sans text-[13px] font-semibold">
-          See all my essays →
+          {r.seeAll}
         </Link>
       )}
     </div>

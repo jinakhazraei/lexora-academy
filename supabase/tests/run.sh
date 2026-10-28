@@ -15,4 +15,5 @@ PSQL=(psql -X -q -v ON_ERROR_STOP=1 -d "$DB" "$@")
 
 "${PSQL[@]}" -f "$HERE/00_supabase_stub.sql"
 "${PSQL[@]}" -f "$HERE/../migrations/0001_student_accounts.sql"
+"${PSQL[@]}" -f "$HERE/../migrations/0002_profile_locale.sql"
 "${PSQL[@]}" -f "$HERE/10_access_rules_test.sql"

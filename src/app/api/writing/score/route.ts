@@ -1,3 +1,5 @@
+import { defaultLocale, hasLocale } from "@/i18n/config";
+import type { Dictionary } from "@/i18n/dictionaries";
 import { getCurrentUser, hasCurrentConsent, isStaff } from "@/lib/auth";
 import { PRIVACY_VERSION, countWords } from "@/lib/ielts";
 import { getScorer, ScorerNotConfiguredError } from "@/lib/scoring";
@@ -12,52 +14,61 @@ const MIN_WORDS_TO_SCORE = 50;
 const MAX_WORDS = 1200;
 const MAX_PROMPT_CHARS = 1000;
 
-type Body = { promptId?: string; promptText?: string; essay?: string; consent?: boolean };
+type Body = { promptId?: string; promptText?: string; essay?: string; consent?: boolean; lang?: string };
 
-const fail = (status: number, error: string, code?: string) => Response.json({ error, code }, { status });
+/** The page translates the code (see writing.errors in the dictionaries); `error` is for logs and API users. */
+type ErrorCode = keyof Dictionary["writing"]["errors"];
+const fail = (status: number, code: ErrorCode, error: string, vars?: Record<string, number>) =>
+  Response.json({ code, error, ...vars }, { status });
 
 export async function POST(request: Request) {
   const user = await getCurrentUser();
-  if (!user || !user.profile) return fail(401, "Please log in to get feedback.", "login_required");
+  if (!user || !user.profile) return fail(401, "login_required", "Please log in to get feedback.");
 
   let body: Body;
   try {
     body = await request.json();
   } catch {
-    return fail(400, "Invalid request.");
+    return fail(400, "invalid", "Invalid request.");
   }
 
+  const lang = hasLocale(body.lang) ? body.lang : defaultLocale;
   const essay = String(body.essay ?? "").replace(/\r\n/g, "\n").trim();
   const wordCount = countWords(essay);
   const presetPrompt = findPrompt(body.promptId);
   const promptId = presetPrompt ? presetPrompt.id : CUSTOM_PROMPT_ID;
   const promptText = (presetPrompt?.text ?? String(body.promptText ?? "")).trim();
 
-  if (promptText.length < 15) return fail(400, "Please choose a prompt or type the question you're answering.");
-  if (promptText.length > MAX_PROMPT_CHARS) return fail(400, "That prompt is too long.");
+  if (promptText.length < 15) return fail(400, "prompt_missing", "Please choose a prompt or type the question you're answering.");
+  if (promptText.length > MAX_PROMPT_CHARS) return fail(400, "prompt_long", "That prompt is too long.");
   if (wordCount < MIN_WORDS_TO_SCORE) {
-    return fail(400, `Write at least ${MIN_WORDS_TO_SCORE} words to get feedback (Task 2 needs 250).`);
+    return fail(400, "too_short", `Write at least ${MIN_WORDS_TO_SCORE} words to get feedback.`, { min: MIN_WORDS_TO_SCORE });
   }
-  if (wordCount > MAX_WORDS) return fail(400, `Please keep your essay under ${MAX_WORDS} words.`);
+  if (wordCount > MAX_WORDS) return fail(400, "too_long", `Please keep your essay under ${MAX_WORDS} words.`, { max: MAX_WORDS });
 
   // Nothing is stored until the student has agreed to the privacy policy.
+  const supabase = await createClient();
   if (!hasCurrentConsent(user.profile)) {
     if (body.consent !== true) {
-      return fail(403, "Please accept the Privacy Policy so we can save your essay.", "consent_required");
+      return fail(403, "consent_required", "Please accept the Privacy Policy so we can save your essay.");
     }
-    const supabase = await createClient();
     const { error } = await supabase
       .from("profiles")
       .update({ privacy_accepted_at: new Date().toISOString(), privacy_version: PRIVACY_VERSION })
       .eq("id", user.id);
-    if (error) return fail(500, "Couldn't save your consent. Please try again.");
+    if (error) return fail(500, "consent_failed", "Couldn't save your consent. Please try again.");
+  }
+  if (user.profile.locale !== lang) {
+    // Best effort: emails to the student (e.g. "your teacher has reviewed your essay") follow
+    // the language they use. Needs migration 0002; without it this quietly does nothing.
+    await supabase.from("profiles").update({ locale: lang }).eq("id", user.id);
   }
 
   let admin;
   try {
     admin = createAdminClient();
   } catch {
-    return fail(503, "Writing feedback isn't switched on yet. Please try again later.", "not_configured");
+    return fail(503, "not_configured", "Writing feedback isn't switched on yet.");
   }
 
   // Daily limit keeps API costs predictable. Teachers aren't limited.
@@ -70,19 +81,19 @@ export async function POST(request: Request) {
       .eq("student_id", user.id)
       .gte("created_at", since);
     if ((count ?? 0) >= dailyLimit) {
-      return fail(429, `You've reached today's limit of ${dailyLimit} essays. Come back tomorrow, or ask your teacher for a review.`, "rate_limited");
+      return fail(429, "rate_limited", `You've reached today's limit of ${dailyLimit} essays.`, { limit: dailyLimit });
     }
   }
 
   let result;
   try {
-    result = await getScorer().score({ prompt: promptText, essay, wordCount });
+    result = await getScorer().score({ prompt: promptText, essay, wordCount, feedbackLanguage: lang });
   } catch (err) {
     if (err instanceof ScorerNotConfiguredError) {
-      return fail(503, "Writing feedback isn't switched on yet. Please try again later.", "not_configured");
+      return fail(503, "not_configured", "Writing feedback isn't switched on yet.");
     }
     console.error("Essay scoring failed:", err);
-    return fail(502, "We couldn't score your essay just now. Your text is still here — please try again in a minute.");
+    return fail(502, "scoring_failed", "We couldn't score your essay just now.");
   }
 
   const { data: saved, error: insertError } = await admin
@@ -109,7 +120,7 @@ export async function POST(request: Request) {
 
   if (insertError || !saved) {
     console.error("Saving essay failed:", insertError);
-    return fail(500, "Your essay was scored but couldn't be saved. Please try again.");
+    return fail(500, "save_failed", "Your essay was scored but couldn't be saved.");
   }
 
   const { error: scoreError } = await admin.from("skill_scores").insert({

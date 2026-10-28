@@ -1,6 +1,10 @@
-import Link from "next/link";
+"use client";
+
+import Link from "@/components/LocaleLink";
 import { BandMeter, Sparkline } from "@/components/scores";
-import { SOURCE_LABELS, formatBand } from "@/lib/ielts";
+import { fmt, formatDate } from "@/i18n/config";
+import { useI18n } from "@/i18n/client";
+import { formatBand } from "@/lib/ielts";
 import type { SkillProgress } from "@/lib/progress";
 
 const SKILL_ICONS: Record<SkillProgress["skill"], React.ReactNode> = {
@@ -10,9 +14,22 @@ const SKILL_ICONS: Record<SkillProgress["skill"], React.ReactNode> = {
   speaking: <path d="M12 3a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3zM6 11a6 6 0 0 0 12 0M12 17v4" />,
 };
 
-export function SkillCard({ progress, target }: { progress: SkillProgress; target: number | null }) {
-  const { label, latest, change, count, points, skill } = progress;
-  const gap = latest && target ? target - latest.band : null;
+export function SkillCard({
+  progress,
+  target,
+  showActions = true,
+}: {
+  progress: SkillProgress;
+  target: number | null;
+  /** The "write your first essay / log a test" links — only for the student themselves. */
+  showActions?: boolean;
+}) {
+  const { lang, t } = useI18n();
+  const d = t.dashboard;
+  const { latest, change, count, points, skill } = progress;
+  const label = t.skills[skill];
+  const latestBand = latest ? Number(latest.band) : null;
+  const gap = latestBand !== null && target ? Number(target) - latestBand : null;
 
   return (
     <div className="flex flex-col rounded-[20px] border border-border-soft bg-white p-5">
@@ -30,7 +47,7 @@ export function SkillCard({ progress, target }: { progress: SkillProgress; targe
             className={`rounded-full px-2 py-0.5 font-sans text-[11.5px] font-bold tabular-nums ${
               change > 0 ? "bg-[#f1f8ee] text-[#2f6b2a]" : "bg-[#fbeeee] text-[#9a3434]"
             }`}
-            title="Change since your first score"
+            title={d.changeSinceFirst}
           >
             {change > 0 ? "▲ +" : "▼ "}
             {Math.abs(change).toFixed(1)}
@@ -38,41 +55,49 @@ export function SkillCard({ progress, target }: { progress: SkillProgress; targe
         )}
       </div>
 
-      {latest ? (
+      {latest && latestBand !== null ? (
         <>
           <div className="mb-1 flex items-baseline gap-2">
-            <span className="font-display text-[40px] font-semibold leading-none tabular-nums text-navy">{formatBand(latest.band)}</span>
-            {target && <span className="font-sans text-[13px] text-meta">/ target {formatBand(target)}</span>}
+            <span className="font-display text-[40px] font-semibold leading-none tabular-nums text-navy">{formatBand(latestBand)}</span>
+            {target && <span className="font-sans text-[13px] text-meta">{fmt(t.scores.ofTarget, { band: formatBand(target) })}</span>}
           </div>
           <div className="mb-4 font-sans text-[12px] text-meta">
-            {SOURCE_LABELS[latest.source]} · {new Date(latest.taken_on).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+            {t.sources[latest.source]} · {formatDate(latest.taken_on, lang, { year: false })}
           </div>
-          <BandMeter value={latest.band} target={target} label={`${label} progress`} />
+          <BandMeter value={latestBand} target={target} label={fmt(d.progress, { skill: label })} />
           <div className="mt-2 font-sans text-[12px] text-muted">
-            {gap === null ? `${count} ${count === 1 ? "score" : "scores"} logged` : gap > 0 ? `${gap.toFixed(1)} to your target` : "✓ Target reached"}
+            {gap === null
+              ? count === 1
+                ? d.scoreLogged
+                : fmt(d.scoresLogged, { count })
+              : gap > 0
+                ? fmt(d.toTarget, { gap: gap.toFixed(1) })
+                : d.targetReached}
           </div>
           {points.length >= 2 && (
             <div className="mt-4 border-t border-cream-alt pt-3">
-              <Sparkline points={points} label={`${label} trend`} />
+              <Sparkline points={points} label={fmt(d.trend, { skill: label })} />
             </div>
           )}
         </>
       ) : (
         <>
           <div className="mb-1 font-display text-[40px] font-semibold leading-none text-border-soft">—</div>
-          <div className="mb-4 font-sans text-[12px] text-meta">No scores yet</div>
-          <BandMeter value={null} target={target} label={`${label} progress`} />
-          <div className="mt-3 font-sans text-[12.5px]">
-            {skill === "writing" ? (
-              <Link href="/writing" className="font-semibold">
-                Write your first essay →
-              </Link>
-            ) : (
-              <a href="#log-score" className="font-semibold">
-                Log a practice test →
-              </a>
-            )}
-          </div>
+          <div className="mb-4 font-sans text-[12px] text-meta">{d.noScores}</div>
+          <BandMeter value={null} target={target} label={fmt(d.progress, { skill: label })} />
+          {showActions && (
+            <div className="mt-3 font-sans text-[12.5px]">
+              {skill === "writing" ? (
+                <Link href="/writing" className="font-semibold">
+                  {d.firstEssay}
+                </Link>
+              ) : (
+                <a href="#log-score" className="font-semibold">
+                  {d.logPractice}
+                </a>
+              )}
+            </div>
+          )}
         </>
       )}
     </div>

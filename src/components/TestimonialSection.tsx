@@ -2,10 +2,13 @@
 
 import Image from "next/image";
 import { useState } from "react";
-import { testimonials } from "@/lib/data";
 import { Eyebrow } from "@/components/ui";
+import { useI18n } from "@/i18n/client";
+import { testimonialPhotos } from "@/lib/data";
 
 export function TestimonialSection() {
+  const { t } = useI18n();
+  const testimonials = t.content.testimonials.map((x, i) => ({ ...x, photo: testimonialPhotos[i] }));
   const [index, setIndex] = useState(0);
   const active = testimonials[index];
 
@@ -23,7 +26,7 @@ export function TestimonialSection() {
         className="object-cover opacity-[0.12] grayscale-[30%]"
       />
       <div className="relative mx-auto max-w-[900px]">
-        <Eyebrow className="mb-3.5">Student Success</Eyebrow>
+        <Eyebrow className="mb-3.5">{t.home.successEyebrow}</Eyebrow>
         <Image
           key={`avatar-${active.photo}`}
           src={active.photo}
@@ -41,7 +44,7 @@ export function TestimonialSection() {
           <button
             type="button"
             onClick={prev}
-            aria-label="Previous testimonial"
+            aria-label={t.home.previous}
             className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border-[1.5px] border-navy bg-transparent text-navy"
           >
             ←
@@ -49,7 +52,7 @@ export function TestimonialSection() {
           <button
             type="button"
             onClick={next}
-            aria-label="Next testimonial"
+            aria-label={t.home.next}
             className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border-[1.5px] border-navy bg-transparent text-navy"
           >
             →

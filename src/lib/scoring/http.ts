@@ -4,7 +4,7 @@ import { ScorerNotConfiguredError, type EssayInput, type EssayScorer } from "@/l
 
 /**
  * Calls Lexora's own scoring model over HTTP. The endpoint receives
- *   POST { prompt, essay, word_count }
+ *   POST { prompt, essay, word_count, feedback_language }
  * and returns the same JSON shape as RAW_SCORE_SCHEMA (see docs/WRITING_SCORER.md).
  */
 export const httpScorer: EssayScorer = {
@@ -19,7 +19,12 @@ export const httpScorer: EssayScorer = {
         "Content-Type": "application/json",
         ...(process.env.ESSAY_SCORER_TOKEN ? { Authorization: `Bearer ${process.env.ESSAY_SCORER_TOKEN}` } : {}),
       },
-      body: JSON.stringify({ prompt: input.prompt, essay: input.essay, word_count: input.wordCount }),
+      body: JSON.stringify({
+        prompt: input.prompt,
+        essay: input.essay,
+        word_count: input.wordCount,
+        feedback_language: input.feedbackLanguage,
+      }),
       signal: AbortSignal.timeout(55_000),
       cache: "no-store",
     });

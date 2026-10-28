@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/LocaleLink";
 
 type Variant = "gold" | "outline-navy" | "navy" | "text-gold";
 
