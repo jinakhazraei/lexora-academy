@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { signOut } from "@/app/auth/actions";
 import { Eyebrow } from "@/components/ui";
 
 export function AuthShell({
@@ -41,6 +42,29 @@ export function AuthShell({
           {children}
         </div>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Signed in, but no profile row exists — the database setup step was skipped, or the
+ * account was created before it ran. Shown instead of redirecting, to avoid a login loop.
+ */
+export function MissingProfileNotice() {
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3.5 font-sans text-[13px] leading-relaxed text-red-700">
+        You&apos;re signed in, but your student profile couldn&apos;t be found, so your dashboard can&apos;t open yet.
+        Please contact Lexora Academy and we&apos;ll fix it for you.
+      </div>
+      <form action={signOut}>
+        <button
+          type="submit"
+          className="cursor-pointer rounded-lg border-[1.5px] border-navy px-4 py-2.5 font-sans text-[13px] font-bold text-navy hover:bg-navy hover:text-white"
+        >
+          Sign out
+        </button>
+      </form>
     </div>
   );
 }

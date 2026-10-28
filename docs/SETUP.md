@@ -111,6 +111,23 @@ dashboard or submit an essay. Nothing is saved before that.
 2. Press **Send to my teacher**, then log in as a teacher and review it on `/teacher`.
 3. Back as the student, the review appears on the essay and the dashboard.
 
+## Troubleshooting
+
+**"You're signed in, but your student profile couldn't be found"** — the account was created before the
+database setup in step 2 ran (or step 2 failed). Run step 2, then this once in the SQL Editor to create the
+missing profiles:
+
+```sql
+insert into public.profiles (id, email)
+select id, email from auth.users
+on conflict (id) do nothing;
+```
+
+Those students will be asked to accept the Privacy Policy the next time they open their dashboard.
+
+**The confirmation email link opens the live site, or `localhost`** — the address isn't in Supabase's
+Redirect URLs (step 3), so Supabase fell back to the Site URL. Add it, then sign up again.
+
 ## Before launch
 
 - Read the [Privacy Policy](../src/app/privacy/page.tsx) carefully. It's written in plain English but is not

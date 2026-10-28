@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { AuthShell, NotConfiguredNotice } from "@/components/AuthShell";
+import { AuthShell, MissingProfileNotice, NotConfiguredNotice } from "@/components/AuthShell";
 import { GoogleButton } from "@/components/GoogleButton";
 import { LoginForm } from "@/app/login/LoginForm";
 import { getCurrentUser } from "@/lib/auth";
@@ -21,13 +21,16 @@ const ERRORS: Record<string, string> = {
 export default async function LoginPage(props: PageProps<"/login">) {
   const params = await props.searchParams;
   const next = safeNextPath(params.next);
-  if (await getCurrentUser()) redirect(next);
+  const user = await getCurrentUser();
+  if (user?.profile) redirect(next);
 
   const errorKey = typeof params.error === "string" ? params.error : "";
 
   return (
     <AuthShell eyebrow="Student Login" title="Welcome back" subtitle="Log in to see your progress, essays and teacher feedback.">
-      {isSupabaseConfigured ? (
+      {user ? (
+        <MissingProfileNotice />
+      ) : isSupabaseConfigured ? (
         <>
           <GoogleButton next={next} />
           <LoginForm next={next} initialError={ERRORS[errorKey]} />
